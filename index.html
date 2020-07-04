@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Fusion Practice Akshay</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <!-- Latest compiled and minified CSS -->
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+
+      <!-- Optional theme -->
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
+
+      <style type="text/css">
+body {
+  padding-top: 40px;
+  padding-bottom: 40px;
+  background-color: #eee;
+}
+
+.form-details {
+  max-width: 330px;
+  padding: 15px;
+  margin: 0 auto;
+}
+.form-details .form-details-heading,
+.form-details .checkbox {
+  margin-bottom: 10px;
+}
+.form-details .checkbox {
+  font-weight: normal;
+}
+.form-details .form-control {
+  position: relative;
+  height: auto;
+  padding: 10px;
+  font-size: 16px;
+}
+.form-details .form-control:focus {
+  z-index: 2;
+}
+
+/* The snackbar - position it at the bottom and in the middle of the screen */
+#snackbar {
+  visibility: hidden; /* Hidden by default. Visible on click */
+  min-width: 250px; /* Set a default minimum width */
+  margin-left: -125px; /* Divide value of min-width by 2 */
+  background-color: #333; /* Black background color */
+  color: #fff; /* White text color */
+  text-align: center; /* Centered text */
+  border-radius: 2px; /* Rounded borders */
+  padding: 16px; /* Padding */
+  position: fixed; /* Sit on top of the screen */
+  z-index: 1; /* Add a z-index if needed */
+  left: 50%; /* Center the snackbar */
+  bottom: 30px; /* 30px from the bottom */
+}
+
+/* Show the snackbar when clicking on a button (class added with JavaScript) */
+#snackbar.show {
+  visibility: visible; /* Show the snackbar */
+  /* Add animation: Take 0.5 seconds to fade in and out the snackbar.
+  However, delay the fade out process for 2.5 seconds */
+  -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;
+  animation: fadein 0.5s, fadeout 0.5s 2.5s;
+}
+
+/* Animations to fade the snackbar in and out */
+@-webkit-keyframes fadein {
+  from {bottom: 0; opacity: 0;}
+  to {bottom: 30px; opacity: 1;}
+}
+
+@keyframes fadein {
+  from {bottom: 0; opacity: 0;}
+  to {bottom: 30px; opacity: 1;}
+}
+
+@-webkit-keyframes fadeout {
+  from {bottom: 30px; opacity: 1;}
+  to {bottom: 0; opacity: 0;}
+}
+
+@keyframes fadeout {
+  from {bottom: 30px; opacity: 1;}
+  to {bottom: 0; opacity: 0;}
+}
+      </style>
+      <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  </head>
+  <body>
+
+
+
+    <div class="container">
+
+      <form class="form-details" method="post" id="formDetails" name="userForm">
+
+        <h2 class="form-details-heading">Details</h2>
+
+        <label for="inputEmail" class="sr-only">Email address</label>
+        <input type="email" id="inputEmail" class="form-control" 
+        placeholder="Email address" required >
+
+        <label for="inputCardNumber" class="sr-only">Card Number</label>
+        <input type="text" id="inputCardNumber" class="form-control" 
+        placeholder="Card Number" required >
+
+        <label for="inputCVV" class="sr-only">CVV</label>
+        <input type="text" id="inputCVV" class="form-control" 
+        placeholder="Security Code" required>
+
+        <!-- made the checkbox required -->
+        <div class="checkbox">
+          <label>
+            <input type="checkbox" value="agree" required id="cbAgreed"> Agree to Terms
+          </label>
+        </div>
+
+        <button class="btn btn-lg btn-primary btn-block" type="submit">Submit</button>
+      </form>
+
+      <div id="snackbar" class="error-block">
+      </div>
+    </div> <!-- /container -->
+
+  </body>
+
+  <script >
+    function EventService() {
+      const API_URL = 'http://localhost:8080/api';
+      const POST_EVENT_PATH = '/events';
+      var sessionId;
+
+      var that = this;
+
+
+      that.getSessionId = () => {
+
+        if(!sessionId) {
+          sessionId = getRandomNumberOfLength(6)+ '-' +
+                  getRandomNumberOfLength(6) + '-' +
+                  getRandomNumberOfLength(9);
+
+
+        }
+        console.log('sessionID',sessionId);
+        return sessionId;
+      }
+
+      that.postEvent = function (params) {
+        return new Promise(function(resolve, reject) {
+          axios.post(API_URL + POST_EVENT_PATH, {...params})
+                  .then(function (response) {
+                    console.log('response from POST ', response);
+                    resolve(response);
+                  })
+                  .catch(function (error) {
+                    console.log('error from POST ',error);
+                    reject(error);
+                  });
+        });
+
+      }
+
+
+      that.getSessionId();
+
+      function getRandomNumberOfLength(n) {
+        var result           = '';
+        var characters       = '0123456789';
+        var charactersLength = characters.length;
+        for ( var i = 0; i < n; i++ ) {
+          result += characters.charAt(Math.floor(Math.random() * charactersLength));
+        }
+        return result;
+      }
+      return that;
+    }
+  </script>
+  <script >
+
+    var errors = [];
+    const CURRENT_SITE_URL = getCurrentSiteUrl();
+    var originalHeight, originalWidth;
+    var startTime;
+
+    const eventService = new EventService();
+    const EVENT_TYPES = {
+      PASTE: 'copyAndPaste',
+      RESIZE: 'screenResize',
+      SUBMIT: 'timeTaken'
+    }
+    var inputEmail, inputCardNumber, inputCVV;
+
+
+    var eventHandlers = {
+      //call post when paste occurs
+      postOnPaste: (event) => {
+        console.log('pasted', event.clipboardData);
+        var eventParams = prepareEventData({
+          'pasted' : true,
+          event: EVENT_TYPES.PASTE,
+          formId: event.target.id
+        });
+        eventService.postEvent(eventParams)
+                .then(() => {
+                  showToast('event paste sent');
+                })
+                .catch((error) => console.error('error sending paste event',error));
+      },
+      //call post when paste occurs
+      postOnResize: (event) => {
+        width = event.target.outerWidth;
+        height = event.target.outerHeight;
+        console.log('resized', event);
+
+        var eventParams = prepareEventData({
+          resizeFrom: {
+            width: originalWidth, height: originalHeight
+          },
+          resizeTo: {
+            width: width, height: height
+          },
+          event: EVENT_TYPES.PASTE
+        });
+        eventService.postEvent(eventParams)
+                .then(() => {
+                  console.log('event sent');
+                  showToast('sent event')
+                          .then(() => {
+                            showToast('event resize sent');
+                            window.removeEventListener("resize", eventHandlers.postOnResize);
+                          })
+                          .catch((error) => console.error('error saving resize event ',error));
+                });
+
+      },
+
+      postOnSubmit: (event) => {
+        //stop control taking us away from the page
+        debugger;
+        event.preventDefault();
+        errors = validateForm();
+        if(errors.length !== 0) {
+          let i=0; s='';
+          for(;i<errors.length;i++) {
+            s += `<p>${i} - ${errros[i]} \n<p>`
+          }
+          showToast(s)
+          return;
+        }
+        //form data isn't being sent at this moment
+        var eventParams = prepareEventData({
+          event: EVENT_TYPES.PASTE,
+          time: (Date.now() - this.startTime) / 1000
+        });
+        eventService.postEvent(eventParams)
+                .then(() =>  showToast('Finished with submit and session'))
+                .then(initSession())
+                .catch((error) => {
+                  console.error('error sending submit event (timeTaken)', error)
+                });                           //reset session after submit
+
+      },
+      onStartTyping: (event) => {
+        console.log('started typing -THIS', this)
+        if(!startTime) {
+          startTime = Date.now();
+          inputEmail.removeEventListener('keyup', this.eventHandlers.onStartTyping)
+          inputCVV.removeEventListener('keyup', this.eventHandlers.onStartTyping)
+          inputCardNumber.removeEventListener('keyup', eventHandlers.onStartTyping)
+        }
+      }
+    };
+
+    /* append session id annd website url it params object */
+    function prepareEventData(params) {
+      return {...params,
+        sessionId: sessionId,
+        websiteUrl: getCurrentSiteUrl()
+      };
+    }
+
+    /* helper for caallinng eventService post method */
+    function sendEvent(event) {
+      return new Promise(function(resolve, reject){
+        eventService.postEvent(event)
+                .then(resolve)
+                .catch(reject)
+      });
+    }
+
+
+    //
+    function initSession() {
+      this.originalWidth = window.screen.width;
+      this.originalHeight = window.screen.height;
+      this.sessionId = eventService.getSessionId();
+      console.log('session started -- ', this.sessionId)
+      initListeners();
+    }
+
+    function initListeners() {
+      window.addEventListener("resize", eventHandlers.postOnResize);
+      this.inputEmail = document.getElementById('inputEmail');
+      this.inputCardNumber = document.getElementById('inputCardNumber');
+      this.inputCVV = document.getElementById('inputCVV');
+      this.inputEmail.addEventListener('paste', eventHandlers.postOnPaste);
+      this.inputCardNumber.addEventListener('paste', eventHandlers.postOnPaste);
+      this.inputCVV.addEventListener('paste', eventHandlers.postOnPaste);
+      this.inputEmail.addEventListener('keyup', eventHandlers.onStartTyping);
+      this.inputCardNumber.addEventListener('keyup', eventHandlers.onStartTyping);
+      this.inputCVV.addEventListener('keyup', eventHandlers.onStartTyping);
+      document.getElementById('formDetails').addEventListener('submit',eventHandlers.postOnSubmit)
+      this.snackbar = document.getElementById("snackbar");
+    }
+
+    /*
+      even though we have already simple form validation in the html with required
+      just another check for data so it hasn't been messed with
+      simple validation for empty string and agreed terms
+    */
+    function validateForm(event) {
+      let isValid = true;
+      if(!document.getElementById('cbTerms'.value)) {
+        this.errors['terms'] = 'You have to accepts terms of service';
+        isValid = false
+      }
+      if(!this.inputEmail.value) {
+        this.errors['email'] = 'Value not provided';
+        isValid = false
+      }
+      if(!this.inputCVV.value) {
+        this.errors['CVV'] = 'Value not provided';
+        isValid = false
+      }
+      if(!this.inputCardNumber.value) {
+        this.errors['cardNumber'] = 'Value not provided';
+        isValid = false;
+      }
+      return isValid
+    }
+    function showToast(message) {
+      // Get the snackbar DIV
+      snackbar.className = "show";
+      snackbar.innerHTML = message
+      // Add the "show" class to DIV
+      snackbar.className = "show";
+
+      // After 3 seconds, remove the show class from DIV
+      setTimeout(function(){
+        snackbar.className = snackbar.className.replace("show", "");
+      }, 3000);
+    }
+    function getCurrentSiteUrl() {
+      return window.location.href;
+    }
+
+
+    initSession();
+
+  </script>
+</html>
